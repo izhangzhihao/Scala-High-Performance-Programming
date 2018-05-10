@@ -10,29 +10,37 @@ import scalaz.{-\/, \/-, ~>}
 object BboUpdatedPipeline {
 
   sealed trait BboProcessingFailure
+
   object BboProcessingFailure {
     def enrichmentFailure(t: Ticker): BboProcessingFailure =
       EnrichmentFailure(t)
+
     def journalingFailure: BboProcessingFailure = JournalingFailure
+
     def tradeAuthorizationFailure: BboProcessingFailure = TradeAuthorizationFailure
   }
 
   case class EnrichmentFailure(t: Ticker) extends BboProcessingFailure
+
   case object JournalingFailure extends BboProcessingFailure
+
   case object TradeAuthorizationFailure extends BboProcessingFailure
 
   import BboProcessingFailure._
 
   def enrichEvent(e: BboUpdated): BboUpdated = e
+
   def journalEvent(e: BboUpdated): Unit = ()
+
   def performPreTradeBalanceChecks(e: BboUpdated): Unit = ()
+
   def sendTradingDecision(d: Either[Bid, Offer]): Unit = ()
 
   def strategyPipeline(
-    recordProcessingLatency: ProcessingLatencyMs => Unit,
-    s: TradingStrategy,
-    ts: MessageSentTimestamp,
-    e: BboUpdated): Unit = {
+                        recordProcessingLatency: ProcessingLatencyMs => Unit,
+                        s: TradingStrategy,
+                        ts: MessageSentTimestamp,
+                        e: BboUpdated): Unit = {
     val enriched = enrichEvent(e)
     journalEvent(enriched)
     performPreTradeBalanceChecks(enriched)
@@ -53,35 +61,36 @@ object BboUpdatedPipeline {
   } yield decision
 
   case class PipelineState(
-    ts: MessageSentTimestamp,
-    strategy: TradingStrategy,
-    event: BboUpdated)
+                            ts: MessageSentTimestamp,
+                            strategy: TradingStrategy,
+                            event: BboUpdated)
 
   private def logFailure(f: BboProcessingFailure): Unit = ()
+
   private def logException(e: Throwable): Unit = ()
 
   private def hasProcessingTimeExpired(
-    ts: MessageSentTimestamp, l: LimitMs): Boolean =
+                                        ts: MessageSentTimestamp, l: LimitMs): Boolean =
     System.currentTimeMillis() - ts.value >= l.value
 
   def runWithFoldInterpreter(
-    recordProcessingLatency: ProcessingLatencyMs => Unit,
-    strategy: TradingStrategy,
-    ts: MessageSentTimestamp,
-    e: BboUpdated): Unit = {
+                              recordProcessingLatency: ProcessingLatencyMs => Unit,
+                              strategy: TradingStrategy,
+                              ts: MessageSentTimestamp,
+                              e: BboUpdated): Unit = {
     val (_, decision) = pipeline.free.foldRun(
       PipelineState(ts, strategy, e)) {
-      case (state, StartProcessing(whenActive, whenExpired, limitMs)) =>
+      case (state: PipelineState, StartProcessing(whenActive, whenExpired, limitMs)) =>
         state -> (hasProcessingTimeExpired(state.ts, limitMs) match {
           case true => whenExpired(e)
           case false => whenActive(e)
         })
-      case (state, Timed(whenActive, whenExpired, limitMs)) =>
+      case (state: PipelineState, Timed(whenActive, whenExpired, limitMs)) =>
         state -> (hasProcessingTimeExpired(state.ts, limitMs) match {
           case true => whenExpired()
           case false => whenActive()
         })
-      case (state, TradingDecision(runStrategy)) =>
+      case (state: PipelineState, TradingDecision(runStrategy)) =>
         state -> runStrategy(state.strategy)
     }
 
@@ -114,10 +123,10 @@ object BboUpdatedPipeline {
   }
 
   def runWithTaskInterpreter(
-    recordProcessingLatency: ProcessingLatencyMs => Unit,
-    s: TradingStrategy,
-    ts: MessageSentTimestamp,
-    e: BboUpdated) = {
+                              recordProcessingLatency: ProcessingLatencyMs => Unit,
+                              s: TradingStrategy,
+                              ts: MessageSentTimestamp,
+                              e: BboUpdated) = {
     pipeline.free.foldMap(thunkToTask(PipelineState(ts, s, e)))
       .unsafePerformAsync {
         case -\/(ex) => logException(ex)
