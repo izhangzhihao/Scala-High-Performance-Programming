@@ -3,6 +3,8 @@ package highperfscala.dataanalysis
 import org.joda.time.DateTime
 import org.specs2.mutable.Specification
 
+import scala.concurrent.Future
+
 class MidpointSeriesSpec extends Specification {
 
   "A MidpointSeries" should {
@@ -37,6 +39,43 @@ class MidpointSeriesSpec extends Specification {
       series.midpointAt(t6.next) ==== None
     }
 
+    "Future test" in {
+      implicit val ec = scala.concurrent.ExecutionContext.Implicits.global
+      val f1 = Future {
+        println("f1")
+      }
+      val f2 = Future {
+        println("f")
+      }
+      val f3 = Future {
+        println("f3")
+      }
+      val f4 = Future {
+        println("f4")
+      }
+      println("Done")
+      true ==== true
+    }
+
+    "another test" in {
+      implicit val ec = scala.concurrent.ExecutionContext.Implicits.global
+      for {
+        f1 <- Future {
+          println("f1")
+        }
+        f2 <- Future {
+          println("f2")
+        }
+        f3 <- Future {
+          println("f3")
+        }
+        f4 <- Future {
+          println("f4")
+        }
+      }
+        println("Done")
+      true ==== true
+    }
   }
 
 }

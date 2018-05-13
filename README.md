@@ -13,3 +13,7 @@ You should install Java Development Kit version 8 or higher for your operating s
 * [Scala for Java Developers](https://www.packtpub.com/application-development/scala-java-developers?utm_source=GitHub&utm_medium=repo&utm_campaign=9781783283637)
 * [Scala for Machine Learning](https://www.packtpub.com/big-data-and-business-intelligence/scala-machine-learning?utm_source=GitHub&utm_medium=repo&utm_campaign=9781783558742)
 * [Learning Concurrent Programming in Scala](https://www.packtpub.com/application-development/learning-concurrent-programming-scala?utm_source=GitHub&utm_medium=repo&utm_campaign=9781783281411)
+
+```bash
+sbt:chapter2> runMain highperfscala.benchmarks.util.DataGenerator src/main/resources/historical_data 100000
+```
